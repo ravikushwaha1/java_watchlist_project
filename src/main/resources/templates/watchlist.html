@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watchlist - Stock Watchlist</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" th:href="@{/}">📈 StockWatch</a>
+            <div class="navbar-nav">
+                <a class="nav-link" th:href="@{/}">Home</a>
+                <a class="nav-link" th:href="@{/users}">Users</a>
+                <a class="nav-link" th:href="@{/stocks}">Stocks</a>
+                <a class="nav-link active" th:href="@{/watchlist}">Watchlist</a>
+                <a class="nav-link" th:href="@{/reports}">Reports</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <h2>Stock Watchlist</h2>
+
+        <!-- User Selection -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Select User</h5>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/watchlist/user/}" method="get" id="userForm">
+                    <select name="userId" class="form-select" onchange="this.form.action='/watchlist/user/' + this.value; this.form.submit()">
+                        <option th:each="user : ${users}" 
+                                th:value="${user.userId}" 
+                                th:text="${user.name + ' (' + user.email + ')'}"
+                                th:selected="${user.userId == selectedUserId}">
+                        </option>
+                    </select>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add to Watchlist Form -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Add Stock to Watchlist</h5>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/watchlist/add}" th:object="${watchlistRequest}" method="post">
+                    <input type="hidden" th:field="*{userId}" th:value="${selectedUserId}">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <select th:field="*{stockId}" class="form-select" required>
+                                <option value="">Select Stock</option>
+                                <option th:each="stock : ${stocks}" 
+                                        th:value="${stock.stockId}" 
+                                        th:text="${stock.symbol + ' - ' + stock.name}">
+                                </option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <input type="number" th:field="*{targetPrice}" class="form-control" placeholder="Target Price" step="0.01">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" th:field="*{notes}" class="form-control" placeholder="Notes">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary">Add to Watchlist</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Watchlist Items -->
+        <div class="card">
+            <div class="card-header">
+                <h5>Watchlist Items</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Stock</th>
+                                <th>Current Price</th>
+                                <th>Target Price</th>
+                                <th>Status</th>
+                                <th>Notes</th>
+                                <th>Added Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="item : ${userWatchlist}">
+                                <td>
+                                    <strong th:text="${item.stock.symbol}"></strong><br>
+                                    <small th:text="${item.stock.name}" class="text-muted"></small>
+                                </td>
+                                <td th:text="'$' + ${#numbers.formatDecimal(item.stock.currentPrice, 1, 2)}"></td>
+                                <td>
+                                    <span th:if="${item.targetPrice != null}" 
+                                          th:text="'$' + ${#numbers.formatDecimal(item.targetPrice, 1, 2)}">
+                                    </span>
+                                    <span th:unless="${item.targetPrice != null}" class="text-muted">-</span>
+                                </td>
+                                <td>
+                                    <span th:if="${item.targetPrice != null}" 
+                                          th:class="${item.stock.currentPrice >= item.targetPrice ? 'badge bg-success' : 'badge bg-warning'}">
+                                        <span th:text="${item.stock.currentPrice >= item.targetPrice ? 'Target Reached' : 'Below Target'}"></span>
+                                    </span>
+                                    <span th:unless="${item.targetPrice != null}" class="badge bg-secondary">No Target</span>
+                                </td>
+                                <td th:text="${item.notes} ?: '-'"></td>
+                                <td th:text="${#temporals.format(item.addedDate, 'yyyy-MM-dd')}"></td>
+                                <td>
+                                    <form th:action="@{/watchlist/remove/{id}(id=${item.watchlistId})}" method="post">
+                                        <input type="hidden" name="userId" th:value="${selectedUserId}">
+                                        <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr th:if="${userWatchlist.empty}">
+                                <td colspan="7" class="text-center">No stocks in watchlist</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
